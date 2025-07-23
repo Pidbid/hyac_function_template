@@ -1,0 +1,10 @@
+{
+    "name":"edge_tts_example",
+    "create_at":"2025-07-22 21:15:46",
+    "update_at":"2025-07-22 18:53:54",
+    "dependencies":{
+        "name":"edge-tts",
+        "version":"7.0.2"
+    },
+    "code":"import os\nimport time\n\nimport edge_tts\nfrom fastapi.responses import StreamingResponse\n\nvoices = {\n    \"xiaoxiao\":\"zh-CN-XiaoxiaoNeural\",\n    \"xiaoyi\":\"zh-CN-XiaoyiNeural\",\n    \"yunxi\":\"zh-CN-YunxiNeural\",\n    \"yunxia\":\"zh-CN-YunxiaNeural\",\n    \"shanxi\":\"zh-CN-shaanxi-XiaoniNeural\",\n    \"liaoning\":\"zh-CN-liaoning-XiaobeiNeural\"\n}\n\ndef mp3_open(file_path):\n    with minio_open(file_path,\"rb\",streaming=True) as fp:\n        while True:\n            chunk_size = fp.read(1024 * 1024)\n            if not chunk_size:\n                break\n            yield chunk_size\n\n\nasync def handler(context, text:str, voice:str=\"xiaoyi\", rate:str=\"+0\", volume:str=\"+0\", pitch:str=\"+0\"):\n    OUTPUT_FILE = f\"{int(time.time())}.mp3\"\n    communicate = edge_tts.Communicate(text=text, voice=voices[voice],rate=f\"{rate}%\",volume=f\"{volume}%\",pitch=f\"{pitch}Hz\")\n    await communicate.save(OUTPUT_FILE)\n    with open(OUTPUT_FILE, \"rb\") as fp:\n        with minio_open(OUTPUT_FILE, \"wb\") as mfp:\n            mfp.write(fp.read())\n    os.remove(OUTPUT_FILE)\n    return StreamingResponse(\n        mp3_open(OUTPUT_FILE),\n        media_type=\"audio/mpeg\",  # Standard MIME type for MP3\n        headers={\n            \"Content-Disposition\": f\"inline; filename={OUTPUT_FILE}\",  # inline means play in browser\n            \"Accept-Ranges\": \"bytes\"  # Support for resumable downloads\n        }\n    )"
+}
